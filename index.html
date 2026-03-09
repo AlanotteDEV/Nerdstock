@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NerdStock - Gestionale Fumetteria</title>
+    <!-- Tailwind CSS per lo styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons per le icone -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #171717; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #404040; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-neutral-950 text-neutral-100 min-h-screen">
+
+    <div id="app" class="flex flex-col md:flex-row min-h-screen">
+        <!-- Sidebar Navigation -->
+        <nav class="w-full md:w-64 bg-neutral-900 border-b md:border-r border-neutral-800 p-4 flex md:flex-col justify-between md:justify-start shrink-0">
+            <div class="flex items-center space-x-3 mb-0 md:mb-10">
+                <div class="bg-red-600 p-2 rounded-lg shadow-lg shadow-red-900/40">
+                    <i data-lucide="package" class="h-6 w-6 text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold text-white tracking-tight hidden md:block italic">NERD<span class="text-red-600">STOCK</span></h1>
+            </div>
+            
+            <div class="flex md:flex-col space-x-2 md:space-x-0 md:space-y-3">
+                <button onclick="setView('dashboard')" id="btn-dashboard" class="nav-btn flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all bg-red-600 text-white font-bold w-full text-left">
+                    <i data-lucide="layout-dashboard" class="h-5 w-5"></i>
+                    <span class="hidden md:inline">Dashboard</span>
+                </button>
+                <button onclick="setView('lista')" id="btn-lista" class="nav-btn flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all text-neutral-400 hover:bg-neutral-800 w-full text-left">
+                    <i data-lucide="list" class="h-5 w-5"></i>
+                    <span class="hidden md:inline">Inventario</span>
+                </button>
+                <button onclick="openAddForm()" id="btn-aggiungi" class="nav-btn flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all text-neutral-400 hover:bg-neutral-800 w-full text-left">
+                    <i data-lucide="plus" class="h-5 w-5"></i>
+                    <span class="hidden md:inline">Nuovo Carico</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+            
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="space-y-8">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-3xl font-extrabold text-white uppercase tracking-tighter italic">Analisi Sezioni</h2>
+                    <div id="revenue-badge" class="text-xs font-mono text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                        Totale Incassato: €0
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="stats-grid">
+                    <!-- Dinamico -->
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Volume Vendite -->
+                    <div class="bg-neutral-900 p-6 rounded-3xl border border-neutral-800">
+                        <h3 class="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2 text-neutral-400">
+                            <i data-lucide="trending-up" class="h-4 w-4 text-red-600"></i>
+                            Volume Vendite per Sezione
+                        </h3>
+                        <div id="sales-volume-chart" class="space-y-5"></div>
+                    </div>
+
+                    <!-- Incasso Reale -->
+                    <div class="bg-neutral-900 p-6 rounded-3xl border border-neutral-800">
+                        <h3 class="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2 text-neutral-400">
+                            <i data-lucide="bar-chart-3" class="h-4 w-4 text-emerald-500"></i>
+                            Incasso per Sezione
+                        </h3>
+                        <div id="revenue-chart" class="space-y-5"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory View -->
+            <div id="view-lista" class="hidden space-y-6">
+                <div class="flex flex-col xl:flex-row justify-between xl:items-end gap-4">
+                    <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter">Inventario</h2>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <select id="filter-category" onchange="renderInventory()" class="px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-white text-xs font-bold outline-none">
+                            <option value="Tutte">Tutte le sezioni</option>
+                        </select>
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500"></i>
+                            <input type="text" id="search-input" oninput="renderInventory()" placeholder="Cerca prodotto..." class="pl-10 pr-4 py-2 w-full sm:w-64 bg-neutral-900 border border-neutral-700 rounded-xl text-white text-xs outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-neutral-900 rounded-3xl border border-neutral-800 overflow-hidden shadow-2xl overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-neutral-950 border-b border-neutral-800 text-neutral-500 uppercase font-black tracking-widest text-[10px]">
+                                <th class="p-5">Prodotto</th>
+                                <th class="p-5">Sezione</th>
+                                <th class="p-5 text-center">In Stock</th>
+                                <th class="p-5 text-center">Venduti</th>
+                                <th class="p-5">Prezzo</th>
+                                <th class="p-5 text-right">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body" class="divide-y divide-neutral-800 font-mono text-[11px]"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Form View -->
+            <div id="view-aggiungi" class="hidden max-w-xl mx-auto py-10">
+                <h2 id="form-title" class="text-3xl font-black text-white italic uppercase tracking-tighter mb-8">Nuovo Articolo</h2>
+                <form id="item-form" onsubmit="handleFormSubmit(event)" class="bg-neutral-900 p-8 rounded-3xl border border-neutral-800 space-y-6">
+                    <input type="hidden" id="form-id">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Nome</label>
+                        <input type="text" id="form-name" required class="w-full p-4 bg-neutral-950 border border-neutral-700 rounded-xl text-white font-bold outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Sezione</label>
+                        <select id="form-category" class="w-full p-4 bg-neutral-950 border border-neutral-700 rounded-xl text-white font-bold outline-none focus:ring-2 focus:ring-red-600">
+                            <!-- Popolato da JS -->
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Quantità</label>
+                            <input type="number" id="form-quantity" required min="0" class="w-full p-4 bg-neutral-950 border border-neutral-700 rounded-xl text-white font-bold outline-none focus:ring-2 focus:ring-red-600">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Prezzo €</label>
+                            <input type="number" id="form-price" required step="0.01" class="w-full p-4 bg-neutral-950 border border-neutral-700 rounded-xl text-white font-bold outline-none focus:ring-2 focus:ring-red-600">
+                        </div>
+                    </div>
+                    <div class="p-4 bg-red-900/10 rounded-xl border border-red-900/20">
+                        <label class="text-[10px] font-black uppercase text-red-500 tracking-widest">Soglia Minima Stock</label>
+                        <input type="number" id="form-minStock" value="2" class="w-full mt-2 p-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white font-bold outline-none">
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button type="button" onclick="setView('lista')" class="flex-1 py-4 border border-neutral-700 text-neutral-500 rounded-xl font-bold uppercase text-xs">Annulla</button>
+                        <button type="submit" class="flex-[2] py-4 bg-red-600 text-white rounded-xl font-black uppercase italic tracking-widest text-xs shadow-lg shadow-red-900/40">Conferma</button>
+                    </div>
+                </form>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // Stato Applicazione
+        let items = [
+            { id: 1, name: 'Spider-Man: Blue', category: 'Fumetti', quantity: 5, price: 19.00, minStock: 2, sold: 45 },
+            { id: 2, name: 'Charizard GX Promo', category: 'Giochi di Carte', quantity: 2, price: 45.00, minStock: 1, sold: 88 },
+            { id: 3, name: 'Catan: Gioco Base', category: 'Giochi da Tavolo', quantity: 4, price: 35.00, minStock: 3, sold: 22 },
+            { id: 4, name: 'LEGO Star Wars: X-Wing', category: 'LEGO', quantity: 1, price: 49.99, minStock: 2, sold: 12 },
+            { id: 5, name: 'Funko Pop: Batman 80th', category: 'Funko Pop', quantity: 12, price: 15.00, minStock: 5, sold: 67 },
+            { id: 6, name: 'Sandman Vol. 1', category: 'Libri', quantity: 3, price: 25.00, minStock: 2, sold: 18 },
+        ];
+
+        const categories = [
+            "Libri", "Fumetti", "Giochi di Carte", "Giochi da Tavolo", 
+            "LEGO", "Puzzle", "Action Figure", "Funko Pop"
+        ];
+
+        // Inizializzazione
+        window.onload = () => {
+            initSelects();
+            renderDashboard();
+            lucide.createIcons();
+        };
+
+        function initSelects() {
+            const filterSel = document.getElementById('filter-category');
+            const formSel = document.getElementById('form-category');
+            categories.forEach(cat => {
+                filterSel.innerHTML += `<option value="${cat}">${cat}</option>`;
+                formSel.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+        }
+
+        function setView(viewId) {
+            ['dashboard', 'lista', 'aggiungi'].forEach(v => {
+                document.getElementById('view-' + v).classList.add('hidden');
+                document.getElementById('btn-' + v).classList.remove('bg-red-600', 'text-white', 'font-bold');
+                document.getElementById('btn-' + v).classList.add('text-neutral-400');
+            });
+
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+            document.getElementById('btn-' + viewId).classList.add('bg-red-600', 'text-white', 'font-bold');
+            document.getElementById('btn-' + viewId).classList.remove('text-neutral-400');
+
+            if(viewId === 'dashboard') renderDashboard();
+            if(viewId === 'lista') renderInventory();
+            lucide.createIcons();
+        }
+
+        // --- DASHBOARD LOGIC ---
+        function renderDashboard() {
+            const totalItems = items.reduce((acc, i) => acc + i.quantity, 0);
+            const totalValue = items.reduce((acc, i) => acc + (i.quantity * i.price), 0);
+            const totalSold = items.reduce((acc, i) => acc + i.sold, 0);
+            const totalRev = items.reduce((acc, i) => acc + (i.sold * i.price), 0);
+            const lowStockCount = items.filter(i => i.quantity <= i.minStock).length;
+
+            document.getElementById('revenue-badge').innerText = `Totale Incassato: €${totalRev.toLocaleString()}`;
+
+            const statsGrid = document.getElementById('stats-grid');
+            statsGrid.innerHTML = `
+                <div class="bg-neutral-900 p-5 rounded-2xl border border-neutral-800">
+                    <p class="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Stock Attuale</p>
+                    <p class="text-3xl font-black text-white">${totalItems} <span class="text-xs font-normal text-neutral-500 italic">pz</span></p>
+                </div>
+                <div class="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 border-l-4 border-l-red-600">
+                    <p class="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Capitale in Stock</p>
+                    <p class="text-3xl font-black text-white">€${totalValue.toLocaleString()}</p>
+                </div>
+                <div class="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 border-l-4 border-l-emerald-600">
+                    <p class="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Vendite Totali</p>
+                    <p class="text-3xl font-black text-emerald-500">${totalSold} <span class="text-xs font-normal italic">u</span></p>
+                </div>
+                <div class="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 ring-1 ring-red-500/20">
+                    <p class="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Articoli Critici</p>
+                    <p class="text-3xl font-black text-red-500">${lowStockCount}</p>
+                </div>
+            `;
+
+            // Performance per Sezione
+            const perf = categories.map(cat => {
+                const sItems = items.filter(i => i.category === cat);
+                return {
+                    name: cat,
+                    units: sItems.reduce((acc, i) => acc + i.sold, 0),
+                    revenue: sItems.reduce((acc, i) => acc + (i.sold * i.price), 0)
+                };
+            }).filter(p => p.units > 0);
+
+            const maxUnits = Math.max(...perf.map(p => p.units), 1);
+            const maxRev = Math.max(...perf.map(p => p.revenue), 1);
+
+            document.getElementById('sales-volume-chart').innerHTML = perf.sort((a,b) => b.units - a.units).map(p => `
+                <div class="space-y-2">
+                    <div class="flex justify-between items-end">
+                        <span class="text-xs font-bold text-neutral-200">${p.name}</span>
+                        <span class="text-[10px] font-mono text-neutral-500">${p.units} u</span>
+                    </div>
+                    <div class="h-4 bg-neutral-950 rounded-lg overflow-hidden border border-neutral-800 p-0.5">
+                        <div class="h-full bg-red-600 rounded-md transition-all duration-1000 shadow-[0_0_10px_rgba(220,38,38,0.3)]" style="width: ${(p.units/maxUnits)*100}%"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('revenue-chart').innerHTML = perf.sort((a,b) => b.revenue - a.revenue).map(p => `
+                <div class="space-y-2">
+                    <div class="flex justify-between items-end">
+                        <span class="text-xs font-bold text-neutral-200">${p.name}</span>
+                        <span class="text-[10px] font-mono text-emerald-500 font-bold">€${p.revenue.toLocaleString()}</span>
+                    </div>
+                    <div class="h-4 bg-neutral-950 rounded-lg overflow-hidden border border-neutral-800 p-0.5">
+                        <div class="h-full bg-emerald-600 rounded-md transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.3)]" style="width: ${(p.revenue/maxRev)*100}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- INVENTORY LOGIC ---
+        function renderInventory() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const filter = document.getElementById('filter-category').value;
+            const tbody = document.getElementById('inventory-table-body');
+            
+            tbody.innerHTML = items
+                .filter(i => (filter === 'Tutte' || i.category === filter) && i.name.toLowerCase().includes(searchTerm))
+                .map(i => `
+                    <tr class="hover:bg-neutral-800/20 transition-colors group">
+                        <td class="p-5 font-bold text-neutral-100 uppercase italic">
+                            ${i.name} ${i.quantity <= i.minStock ? '<span class="ml-2 bg-red-600 text-[8px] text-white px-1.5 py-0.5 rounded">LOW</span>' : ''}
+                        </td>
+                        <td class="p-5">
+                            <span class="text-[9px] bg-neutral-800 px-2 py-1 rounded border border-neutral-700 text-neutral-400 font-bold uppercase">${i.category}</span>
+                        </td>
+                        <td class="p-5 text-center">
+                            <div class="flex items-center justify-center space-x-2">
+                                <button onclick="adjustQty(${i.id}, -1)" class="text-neutral-600 hover:text-red-500"><i data-lucide="minus-circle" class="h-4 w-4"></i></button>
+                                <span class="w-6 text-center font-black ${i.quantity <= i.minStock ? 'text-red-600' : 'text-white'}">${i.quantity}</span>
+                                <button onclick="adjustQty(${i.id}, 1)" class="text-neutral-600 hover:text-white"><i data-lucide="plus-circle" class="h-4 w-4"></i></button>
+                            </div>
+                        </td>
+                        <td class="p-5 text-center font-bold text-emerald-500">${i.sold}</td>
+                        <td class="p-5 text-neutral-300">€${i.price.toFixed(2)}</td>
+                        <td class="p-5 text-right space-x-1">
+                            <button onclick="sellItem(${i.id})" class="p-2 rounded-lg text-emerald-500 hover:bg-emerald-500/10 ${i.quantity === 0 ? 'opacity-20 cursor-not-allowed' : ''}" ${i.quantity === 0 ? 'disabled' : ''}><i data-lucide="shopping-cart" class="h-4 w-4"></i></button>
+                            <button onclick="editItem(${i.id})" class="p-2 text-neutral-600 hover:text-white"><i data-lucide="edit" class="h-4 w-4"></i></button>
+                            <button onclick="deleteItem(${i.id})" class="p-2 text-neutral-600 hover:text-red-600"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            lucide.createIcons();
+        }
+
+        function adjustQty(id, amt) {
+            const item = items.find(i => i.id === id);
+            if(item) {
+                item.quantity = Math.max(0, item.quantity + amt);
+                renderInventory();
+            }
+        }
+
+        function sellItem(id) {
+            const item = items.find(i => i.id === id);
+            if(item && item.quantity > 0) {
+                item.quantity--;
+                item.sold++;
+                renderInventory();
+            }
+        }
+
+        function deleteItem(id) {
+            if(confirm('Eliminare il prodotto?')) {
+                items = items.filter(i => i.id !== id);
+                renderInventory();
+            }
+        }
+
+        // --- FORM LOGIC ---
+        function openAddForm() {
+            document.getElementById('form-id').value = '';
+            document.getElementById('item-form').reset();
+            document.getElementById('form-title').innerText = 'Nuovo Articolo';
+            setView('aggiungi');
+        }
+
+        function editItem(id) {
+            const item = items.find(i => i.id === id);
+            if(item) {
+                document.getElementById('form-id').value = item.id;
+                document.getElementById('form-name').value = item.name;
+                document.getElementById('form-category').value = item.category;
+                document.getElementById('form-quantity').value = item.quantity;
+                document.getElementById('form-price').value = item.price;
+                document.getElementById('form-minStock').value = item.minStock;
+                document.getElementById('form-title').innerText = 'Modifica Scheda';
+                setView('aggiungi');
+            }
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('form-id').value;
+            const newItem = {
+                id: id ? parseInt(id) : Date.now(),
+                name: document.getElementById('form-name').value,
+                category: document.getElementById('form-category').value,
+                quantity: parseInt(document.getElementById('form-quantity').value),
+                price: parseFloat(document.getElementById('form-price').value),
+                minStock: parseInt(document.getElementById('form-minStock').value),
+                sold: id ? (items.find(i => i.id == id)?.sold || 0) : 0
+            };
+
+            if(id) {
+                items = items.map(i => i.id == id ? newItem : i);
+            } else {
+                items.push(newItem);
+            }
+
+            setView('lista');
+        }
+    </script>
+</body>
+</html>
